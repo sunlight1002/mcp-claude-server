@@ -34,11 +34,16 @@ Unified MCP gateway for Lee Associates South Florida. One process serves four in
 
 ### `/parcelscraper`
 
+Blocking tools wait for the automation job, download the Supabase result file when needed, and return parsed parcel records instead of only a file link.
+
 | Tool | Description |
 | --- | --- |
-| `start_parcel_scrape` | Start async parcel scrape for Miami-Dade/Broward/Palm Beach IDs |
-| `start_dade_scrape` | Start async Miami-Dade Clerk records scrape |
-| `get_scrape_status` | Poll scrape job status by jobId |
+| `scrape_parcels` | **Preferred.** Scrape parcel IDs, wait with progress, return finished records |
+| `scrape_dade_records` | **Preferred.** Scrape Miami-Dade Clerk records and return finished records |
+| `get_scrape_results` | Resolve records from a finished jobId or Supabase file URL |
+| `get_scrape_status` | Poll job status; auto-resolves records when complete |
+| `start_parcel_scrape` | Start async parcel scrape without waiting (manual control) |
+| `start_dade_scrape` | Start async Dade scrape without waiting (manual control) |
 | `get_lee_associates_link` | Look up Lee Associates listing/PDF links for an address |
 
 ### `/adminsite`

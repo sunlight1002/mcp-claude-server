@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -86,3 +87,74 @@ def http_request(
         }
 
     return data if isinstance(data, dict) else {"data": data}
+
+
+def _parse_http_response(response: httpx.Response) -> dict[str, Any] | Any:
+    """Parse an HTTP response body into JSON-compatible data."""
+    content_type = response.headers.get("content-type", "")
+    if "application/json" in content_type:
+        try:
+            return response.json()
+        except ValueError:
+            return {"raw": response.text}
+
+    return {"raw": response.text, "content_type": content_type}
+
+
+async def http_request_async(
+    method: str,
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+    json_body: Any | None = None,
+    params: dict[str, Any] | None = None,
+    timeout: float = 120.0,
+) -> dict[str, Any]:
+    """Perform an async HTTP request and return parsed JSON or an error envelope."""
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.request(
+                method,
+                url,
+                headers=headers,
+                json=json_body,
+                params=params,
+            )
+    except httpx.RequestError as exc:
+        return {"error": f"Request failed: {exc}"}
+
+    data = _parse_http_response(response)
+
+    if not response.is_success:
+        return {
+            "error": f"HTTP {response.status_code}",
+            "details": data,
+        }
+
+    return data if isinstance(data, dict) else {"data": data}
+
+
+async def fetch_json_text(url: str, *, timeout: float = 120.0) -> dict[str, Any]:
+    """Download a text/plain JSON file (e.g. Supabase signed URL) and parse it."""
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(url)
+    except httpx.RequestError as exc:
+        return {"error": f"Request failed: {exc}"}
+
+    if not response.is_success:
+        return {
+            "error": f"HTTP {response.status_code}",
+            "details": {"raw": response.text[:500]},
+        }
+
+    try:
+        parsed = json.loads(response.text)
+    except json.JSONDecodeError as exc:
+        return {"error": f"Failed to parse JSON from file: {exc}"}
+
+    if isinstance(parsed, list):
+        return {"results": parsed}
+    if isinstance(parsed, dict):
+        return parsed
+    return {"results": [parsed]}
