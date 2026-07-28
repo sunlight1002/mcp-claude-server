@@ -31,6 +31,9 @@ def get_transport_security():
             f"http://{domain}",
             "http://127.0.0.1:*",
             "http://localhost:*",
+            "https://claude.ai",
+            "https://*.claude.ai",
+            "https://www.claude.ai",
         ],
     )
 

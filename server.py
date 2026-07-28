@@ -18,9 +18,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 
-from servers import adminsite_mcp, enformion_mcp, parcelscraper_mcp, zoominfo_mcp
-
+# Load .env before importing servers so module-level getenv() sees credentials.
 load_dotenv()
+
+from servers import adminsite_mcp, enformion_mcp, parcelscraper_mcp, zoominfo_mcp
 
 MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.getenv("MCP_PORT", "8000"))

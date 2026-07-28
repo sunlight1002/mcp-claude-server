@@ -14,16 +14,25 @@ from .shared import create_fastmcp
 
 mcp = create_fastmcp("enformion")
 
-API_URL = (os.getenv("ENFORMIONGO_API_URL") or "https://devapi.enformion.com").rstrip("/")
-AP_NAME = (
-    os.getenv("ENFORMIONGO_ACCESS_PROFILE_NAME")
-    or os.getenv("ENFORMIONGO_KEY_NAME")
-)
-AP_PASSWORD = (
-    os.getenv("ENFORMIONGO_ACCESS_PROFILE_PASSWORD")
-    or os.getenv("ENFORMIONGO_KEY_PASSWORD")
-)
-REQUEST_TIMEOUT = int(os.getenv("ENFORMIONGO_TIMEOUT", "30"))
+
+def _api_url() -> str:
+    return (os.getenv("ENFORMIONGO_API_URL") or "https://devapi.enformion.com").rstrip("/")
+
+
+def _credentials() -> tuple[str | None, str | None]:
+    name = (
+        os.getenv("ENFORMIONGO_ACCESS_PROFILE_NAME")
+        or os.getenv("ENFORMIONGO_KEY_NAME")
+    )
+    password = (
+        os.getenv("ENFORMIONGO_ACCESS_PROFILE_PASSWORD")
+        or os.getenv("ENFORMIONGO_KEY_PASSWORD")
+    )
+    return name, password
+
+
+def _timeout() -> int:
+    return int(os.getenv("ENFORMIONGO_TIMEOUT", "30"))
 
 
 def _clean(payload: dict[str, Any]) -> dict[str, Any]:
@@ -68,17 +77,18 @@ def _extract_api_error(data: dict[str, Any]) -> str | None:
 
 def _call(search_type: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
     """POST a request to an EnformionGO endpoint and return the parsed JSON."""
-    if not AP_NAME or not AP_PASSWORD:
+    ap_name, ap_password = _credentials()
+    if not ap_name or not ap_password:
         return {
             "error": "Missing credentials. Set ENFORMIONGO_ACCESS_PROFILE_NAME "
             "(or ENFORMIONGO_KEY_NAME) and ENFORMIONGO_ACCESS_PROFILE_PASSWORD "
             "(or ENFORMIONGO_KEY_PASSWORD) in your environment / .env file."
         }
 
-    url = f"{API_URL}{path}"
+    url = f"{_api_url()}{path}"
     headers = {
-        "galaxy-ap-name": AP_NAME,
-        "galaxy-ap-password": AP_PASSWORD,
+        "galaxy-ap-name": ap_name,
+        "galaxy-ap-password": ap_password,
         "galaxy-search-type": search_type,
         "Content-Type": "application/json",
         "Accept": "application/json",
@@ -89,7 +99,7 @@ def _call(search_type: str, path: str, payload: dict[str, Any]) -> dict[str, Any
             url,
             json=_clean(payload),
             headers=headers,
-            timeout=REQUEST_TIMEOUT,
+            timeout=_timeout(),
         )
     except requests.RequestException as exc:
         return {"error": f"Request to EnformionGO failed: {exc}"}

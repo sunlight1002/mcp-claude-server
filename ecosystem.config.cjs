@@ -5,6 +5,7 @@ module.exports = {
       script: "server.py",
       interpreter: "/home/ubuntu/mcp-claude-server/venv/bin/python",
       cwd: "/home/ubuntu/mcp-claude-server",
+      // Secrets/credentials come from .env via python-dotenv in server.py.
       env: {
         MCP_HOST: "127.0.0.1",
         MCP_PORT: "8000",
