@@ -48,16 +48,21 @@ Blocking tools wait for the automation job, download the Supabase result file wh
 
 ### `/adminsite`
 
+Property lookup uses the same Supabase DB as the admin UI. Analysis tools call the real admin `/api/*` routes and hydrate fields (and comps) the same way the UI does.
+
 | Tool | Description |
 | --- | --- |
-| `property_proximity` | Team-map proximity analysis for a property |
-| `sales_comps` | AI sales comparables |
-| `lease_comps` | AI lease comparables |
-| `investment_rating` | 0–5 investment rating and summary |
-| `call_script` | Owner call script with cap-rate math |
+| `search_properties` | Search properties by name/address/type; returns UUIDs |
+| `get_property` | Get one property by UUID with pricing/listing fields |
+| `property_proximity` | Team-map proximity analysis (`/api/active-prospect-proximity`) |
+| `sales_comps` | AI sales comparables (`/api/sales-comps`) |
+| `lease_comps` | AI lease comparables (`/api/lease-comps`) |
+| `investment_rating` | 0–5 rating; auto-fetches sales+lease comps first |
+| `call_script` | Owner call script; auto-fetches sales comps first |
 | `costar_changes` | CoStar tenant/rent roll changes |
 | `extract_lease_rate` | Extract rent/SF from property OM documents |
 | `active_prospect_web_scan` | Web diligence scan with source links |
+| `sync_property_knowledge` | Sync property docs into the admin RAG index |
 
 ## Setup
 
