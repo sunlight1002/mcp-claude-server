@@ -14,7 +14,25 @@ from mcp.server.fastmcp import Context
 
 from .shared import create_fastmcp, http_request_async
 
-mcp = create_fastmcp("adminsite")
+ADMINSITE_INSTRUCTIONS = """
+You are connected to the Lee Associates South Florida admin portal.
+
+This MCP server exposes the FULL admin portal — not properties only:
+- People/contacts: search_contacts, search_customer_requests (leads with name/email/phone),
+  search_team_members, search_users, search_career_inquiries
+- Properties & Active Prospects: search_properties, get_property, comps, ratings, CoStar, proximity
+- Triple Net / public listings: search_public_properties, get_public_property
+- News, prospect tags/folders, dashboard stats
+- Admin AI chat over property docs: ask_property
+- Scraper result files via admin API: list_scraper_files, list_dade_files, get_admin_scraper_status
+- Call sheet jobs: list_call_sheet_jobs
+
+For people or contact questions, use search_contacts or search_customer_requests / search_team_members.
+For external people enrichment (EnformionGO / ZoomInfo), use those separate MCP servers.
+Do NOT say this connector only has property tools.
+""".strip()
+
+mcp = create_fastmcp("adminsite", instructions=ADMINSITE_INSTRUCTIONS)
 
 API_URL = (
     os.getenv("ADMINSITE_API_URL")
@@ -658,3 +676,8 @@ async def sync_property_knowledge(
         "/api/active-prospect-knowledge-sync",
         json_body={"propertyId": str(resolved_id)},
     )
+
+
+# Register people/leads/NNN/news/scraper/call-sheet tools on this same MCP server.
+from . import adminsite_data as _adminsite_data  # noqa: E402,F401
+

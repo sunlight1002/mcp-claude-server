@@ -39,12 +39,13 @@ def get_transport_security():
     )
 
 
-def create_fastmcp(name: str):
+def create_fastmcp(name: str, instructions: str | None = None):
     """Create a FastMCP instance with shared transport security settings."""
     from mcp.server.fastmcp import FastMCP
 
     return FastMCP(
         name,
+        instructions=instructions,
         transport_security=get_transport_security(),
     )
 

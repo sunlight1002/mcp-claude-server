@@ -48,21 +48,26 @@ Blocking tools wait for the automation job, download the Supabase result file wh
 
 ### `/adminsite`
 
-Property lookup uses the same Supabase DB as the admin UI. Analysis tools call the real admin `/api/*` routes and hydrate fields (and comps) the same way the UI does.
+Full Lee Associates admin portal connector — properties, people/contacts, leads, team, users, triple-net listings, news, scrapers, and call sheets. Not property-only.
 
 | Tool | Description |
 | --- | --- |
-| `search_properties` | Search properties by name/address/type; returns UUIDs |
-| `get_property` | Get one property by UUID with pricing/listing fields |
-| `property_proximity` | Team-map proximity analysis (`/api/active-prospect-proximity`) |
-| `sales_comps` | AI sales comparables (`/api/sales-comps`) |
-| `lease_comps` | AI lease comparables (`/api/lease-comps`) |
-| `investment_rating` | 0–5 rating; auto-fetches sales+lease comps first |
-| `call_script` | Owner call script; auto-fetches sales comps first |
-| `costar_changes` | CoStar tenant/rent roll changes |
-| `extract_lease_rate` | Extract rent/SF from property OM documents |
-| `active_prospect_web_scan` | Web diligence scan with source links |
-| `sync_property_knowledge` | Sync property docs into the admin RAG index |
+| `search_contacts` | People search across leads, team, users, career inquiries |
+| `search_customer_requests` / `get_customer_request` | Lead requests (name/email/phone) |
+| `search_team_members` / `get_team_member` | Broker/team contacts |
+| `search_users` / `get_user` | Portal user accounts |
+| `search_career_inquiries` | Career applicants |
+| `search_properties` / `get_property` | Listings / Active Prospects |
+| `search_public_properties` / `get_public_property` | Triple-net / public listings |
+| `search_news` | News/press items |
+| `list_prospect_tags` / `list_prospect_folders` | Active Prospect taxonomy |
+| `get_dashboard_stats` | Portal counts |
+| `property_proximity` / `sales_comps` / `lease_comps` | Property intelligence APIs |
+| `investment_rating` / `call_script` / `costar_changes` | Rating, scripts, CoStar |
+| `extract_lease_rate` / `active_prospect_web_scan` / `sync_property_knowledge` | OM/docs tools |
+| `ask_property` | Ask AI over property documents |
+| `list_scraper_files` / `list_dade_files` / scraper status/start | Admin scraper proxies |
+| `list_call_sheet_jobs` / `get_call_sheet_download` | Call sheet converter API |
 
 ## Setup
 
