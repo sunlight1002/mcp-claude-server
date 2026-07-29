@@ -25,9 +25,18 @@ API_URL = (
 REQUEST_TIMEOUT = float(os.getenv("PARCELSCRAPER_TIMEOUT", "120"))
 POLL_INTERVAL = float(os.getenv("PARCELSCRAPER_POLL_INTERVAL", "5"))
 MAX_WAIT = float(os.getenv("PARCELSCRAPER_MAX_WAIT", "1800"))
-MAX_RESULT_BYTES = int(os.getenv("PARCELSCRAPER_MAX_RESULT_BYTES", "120000"))
+MAX_RESULT_BYTES = int(os.getenv("PARCELSCRAPER_MAX_RESULT_BYTES", "500000"))
 
 DetailLevel = Literal["auto", "full", "summary"]
+
+# Bulky EnformionGO text blobs — keep a short preview when summarizing.
+_ENFORMION_TRIM_KEYS = (
+    "properties",
+    "financial_information",
+    "criminal_record",
+    "professional_licenses",
+)
+_TRIM_PREVIEW_CHARS = 400
 
 
 def _is_error_envelope(payload: dict[str, Any]) -> bool:
@@ -81,70 +90,60 @@ def _extract_results_list(payload: Any) -> list[Any] | None:
     return None
 
 
+def _trim_enformion_person(person: dict[str, Any]) -> dict[str, Any]:
+    """Keep EnformionGO contact fields; only shorten huge text blobs."""
+    trimmed = dict(person)
+    for key in _ENFORMION_TRIM_KEYS:
+        value = trimmed.get(key)
+        if isinstance(value, str) and len(value) > _TRIM_PREVIEW_CHARS:
+            trimmed[key] = value[:_TRIM_PREVIEW_CHARS] + "… [truncated]"
+    return trimmed
+
+
+def _trim_enformion_result(name_search: Any) -> Any:
+    if isinstance(name_search, dict):
+        return _trim_enformion_person(name_search)
+    if isinstance(name_search, list):
+        return [
+            _trim_enformion_person(item) if isinstance(item, dict) else item
+            for item in name_search
+        ]
+    return name_search
+
+
 def _summarize_record(record: dict[str, Any]) -> dict[str, Any]:
-    """Compact one parcel scrape record for Claude context limits."""
+    """Compact one parcel scrape record while keeping Sunbiz + EnformionGO.
+
+    Same top-level shape as the automation server so Claude can present owner
+    officers and contact enrichment the same way as the parcel scraper UI.
+    """
     property_info = record.get("propertyInfo") or {}
     if not isinstance(property_info, dict):
         property_info = {}
 
-    owner_infos = property_info.get("owner_infos") or []
-    if not isinstance(owner_infos, list):
-        owner_infos = []
-
+    company_owner = record.get("company_owner_name")
     name_search = record.get("nameSearchResult")
-    owner_contacts: list[dict[str, Any]] = []
-    if isinstance(name_search, dict):
-        owner_contacts.append(
-            {
-                "full_name": name_search.get("full_name"),
-                "age": name_search.get("age"),
-                "phone_numbers": name_search.get("phone_numbers"),
-                "email": name_search.get("email"),
-            }
-        )
-    elif isinstance(name_search, list):
-        for item in name_search:
-            if isinstance(item, dict):
-                owner_contacts.append(
-                    {
-                        "full_name": item.get("full_name"),
-                        "age": item.get("age"),
-                        "phone_numbers": item.get("phone_numbers"),
-                        "email": item.get("email"),
-                    }
-                )
-
-    company_owner = record.get("company_owner_name") or {}
-    if not isinstance(company_owner, dict):
-        company_owner = {}
-
-    businesses = record.get("businessSearchResult") or []
-    if not isinstance(businesses, list):
-        businesses = []
-
+    businesses = record.get("businessSearchResult")
+    occupancy = record.get("occupancy_subject_property")
     dade = record.get("dade")
+
     summary: dict[str, Any] = {
-        "parcel_id": property_info.get("parcelID"),
-        "physical_address": property_info.get("physical_address"),
-        "mailing_address": property_info.get("mailing_address"),
-        "year_built": property_info.get("year_built"),
-        "lot_size": property_info.get("lot_size"),
-        "adjusted_area": property_info.get("adjusted_area"),
-        "last_sale_date": property_info.get("last_sale_date"),
-        "last_sale_price": property_info.get("last_sale_price"),
-        "owner_names": owner_infos,
-        "original_owner_name": property_info.get("original_owner_name"),
-        "owner_contacts": owner_contacts,
+        "propertyInfo": property_info,
+        "company_owner_name": company_owner,
+        "nameSearchResult": _trim_enformion_result(name_search),
         "owner_occupied": record.get("owner_occupied"),
-        "businesses_at_property": businesses,
-        "sunbiz_link": company_owner.get("sunbiz_link"),
-        "company_officers": company_owner.get("owners_information"),
+        "businessSearchResult": businesses,
+        "occupancy_subject_property": occupancy,
     }
 
     if isinstance(dade, dict):
-        summary["dade_record"] = dade
+        summary["dade"] = dade
 
-    return {key: value for key, value in summary.items() if value not in (None, "", [], {})}
+    return {
+        key: value
+        for key, value in summary.items()
+        if value not in (None, "", [], {})
+    }
 
 
 def _shape(results: list[Any], detail: DetailLevel) -> tuple[list[Any], str, bool]:
@@ -167,22 +166,26 @@ async def _resolve_results(
     status: dict[str, Any],
     cached_data: list[Any] | None,
 ) -> tuple[list[Any] | None, str | None]:
-    """Resolve scrape records from status.data, Supabase file, or cached partial data."""
-    data = _extract_results_list(status.get("data"))
-    if data:
-        return data, "status.data"
+    """Resolve scrape records.
 
+    Prefer the Supabase uploaded file (authoritative final payload with
+    Sunbiz + EnformionGO), then status.data, then cached partials.
+    """
     file_url = status.get("fileUrl") or status.get("file_url")
     if isinstance(file_url, str) and file_url.strip():
         file_payload = await fetch_json_text(file_url.strip(), timeout=REQUEST_TIMEOUT)
-        if _is_error_envelope(file_payload):
-            if cached_data:
-                return cached_data, "cached_partial_after_file_error"
+        if not _is_error_envelope(file_payload):
+            file_results = _extract_results_list(file_payload)
+            if file_results:
+                return file_results, "supabase_file"
+        elif cached_data:
+            return cached_data, "cached_partial_after_file_error"
+        else:
             return None, file_payload.get("error")
 
-        file_results = _extract_results_list(file_payload)
-        if file_results:
-            return file_results, "supabase_file"
+    data = _extract_results_list(status.get("data"))
+    if data:
+        return data, "status.data"
 
     if cached_data:
         return cached_data, "cached_partial"
@@ -279,6 +282,14 @@ async def _wait_for_job(
 
         await asyncio.sleep(POLL_INTERVAL)
 
+    # Timed out — if a file uploaded in the final status, still try to resolve full results.
+    if last_status.get("fileUrl") or last_status.get("isComplete"):
+        return {
+            "completed": True,
+            "status_payload": last_status,
+            "cached_data": cached_data,
+        }
+
     return _build_response(
         job_id=job_id,
         status="timeout",
@@ -287,7 +298,8 @@ async def _wait_for_job(
         truncated=False,
         message=(
             "Scrape job did not finish within the wait window. "
-            "Call get_scrape_results with this job_id to retry resolving results."
+            "Call get_scrape_results with this job_id after the job completes "
+            "to get full Sunbiz + EnformionGO results."
         ),
         progress=int(last_status.get("progress") or 0),
         file_url=last_status.get("fileUrl"),
@@ -339,16 +351,21 @@ async def _finalize_job_response(
 @mcp.tool()
 async def scrape_parcels(
     parcel_ids: list[str],
-    detail: DetailLevel = "auto",
+    detail: DetailLevel = "full",
     max_wait_seconds: Optional[float] = None,
     ctx: Context = None,
 ) -> dict[str, Any]:
-    """Scrape one or more parcel/folio IDs and return the finished parcel records.
+    """Scrape parcel/folio IDs and return the same records as the parcel scraper server.
 
-    Preferred tool for Claude. Starts the scrape, waits with progress updates,
-    downloads the Supabase result file when needed, and returns parsed records.
-    Present the records directly to the user; only mention file_url if they ask
-    for the uploaded file.
+    Preferred tool for Claude. Waits until the job finishes, downloads the
+    Supabase result file, and returns full records including:
+    - propertyInfo (addresses, sale, owners)
+    - company_owner_name (Sunbiz link + officers)
+    - nameSearchResult (EnformionGO contacts: phones, emails, etc.)
+    - owner_occupied, businessSearchResult, occupancy_subject_property
+
+    Present all of those sections to the user. Only mention file_url if asked.
+    Use detail=\"summary\" only for very large batches.
     """
     if not parcel_ids:
         return {"error": "parcel_ids must be a non-empty list"}
@@ -374,14 +391,14 @@ async def scrape_dade_records(
     date_from: str,
     date_to: str,
     document_type: str,
-    detail: DetailLevel = "auto",
+    detail: DetailLevel = "full",
     max_wait_seconds: Optional[float] = None,
     ctx: Context = None,
 ) -> dict[str, Any]:
-    """Scrape Miami-Dade Clerk records and return finished enrichment records.
+    """Scrape Miami-Dade Clerk records and return full enrichment records.
 
-    Preferred tool for Claude. Waits for the job, resolves Supabase file results
-    when needed, and returns parsed records instead of a file link.
+    Same payload as the automation server, including EnformionGO nameSearchResult.
+    Present Sunbiz/Enformion sections when present; only mention file_url if asked.
     """
     start_payload = await _proxy_async(
         "POST",
@@ -407,9 +424,9 @@ async def scrape_dade_records(
 async def get_scrape_results(
     job_id: Optional[str] = None,
     file_url: Optional[str] = None,
-    detail: DetailLevel = "auto",
+    detail: DetailLevel = "full",
 ) -> dict[str, Any]:
-    """Resolve scrape records for a finished job or directly from a Supabase file URL."""
+    """Resolve full scrape records (Sunbiz + EnformionGO) from a jobId or Supabase file URL."""
     if file_url and file_url.strip():
         file_payload = await fetch_json_text(file_url.strip(), timeout=REQUEST_TIMEOUT)
         if _is_error_envelope(file_payload):
@@ -468,9 +485,9 @@ async def get_scrape_results(
 @mcp.tool()
 async def get_scrape_status(
     job_id: str,
-    detail: DetailLevel = "auto",
+    detail: DetailLevel = "full",
 ) -> dict[str, Any]:
-    """Get scrape job status. When complete, returns parsed records instead of only a file link."""
+    """Get scrape job status. When complete, returns full records including Sunbiz + EnformionGO."""
     if not job_id.strip():
         return {"error": "job_id is required"}
 

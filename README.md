@@ -38,10 +38,10 @@ Blocking tools wait for the automation job, download the Supabase result file wh
 
 | Tool | Description |
 | --- | --- |
-| `scrape_parcels` | **Preferred.** Scrape parcel IDs, wait with progress, return finished records |
-| `scrape_dade_records` | **Preferred.** Scrape Miami-Dade Clerk records and return finished records |
-| `get_scrape_results` | Resolve records from a finished jobId or Supabase file URL |
-| `get_scrape_status` | Poll job status; auto-resolves records when complete |
+| `scrape_parcels` | **Preferred.** Scrape parcel IDs, wait, return full records (propertyInfo, Sunbiz `company_owner_name`, EnformionGO `nameSearchResult`) |
+| `scrape_dade_records` | **Preferred.** Scrape Miami-Dade Clerk records and return full enrichment records |
+| `get_scrape_results` | Resolve full records from a finished jobId or Supabase file URL |
+| `get_scrape_status` | Poll job status; when complete returns full Sunbiz + EnformionGO records |
 | `start_parcel_scrape` | Start async parcel scrape without waiting (manual control) |
 | `start_dade_scrape` | Start async Dade scrape without waiting (manual control) |
 | `get_lee_associates_link` | Look up Lee Associates listing/PDF links for an address |
