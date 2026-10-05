@@ -214,7 +214,7 @@ def reverse_phone_search(
         "Page": page,
         "ResultsPerPage": results_per_page,
     }
-    return _call("ReversePhone", "/Phone/Enrich", payload)
+    return _call("ReversePhone", "/ReversePhoneSearch", payload)
 
 
 @mcp.tool()
