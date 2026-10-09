@@ -97,22 +97,34 @@ MCP endpoints:
 
 ## Connect to Claude Desktop
 
-Add each server to `claude_desktop_config.json` (Streamable HTTP transport):
+Add each server to `claude_desktop_config.json` (Streamable HTTP transport). Each server requires its own secret in the `Authorization` header. Do not put the key in the URL. Requests without a valid `Authorization: Bearer <key>` header receive `401`.
 
 ```json
 {
   "mcpServers": {
     "enformion": {
-      "url": "https://mcp.claude.christianbaenaconsulting.com/enformion"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/enformion",
+      "headers": {
+        "Authorization": "Bearer <ENFORMION_MCP_KEY>"
+      }
     },
     "zoominfo": {
-      "url": "https://mcp.claude.christianbaenaconsulting.com/zoominfo"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/zoominfo",
+      "headers": {
+        "Authorization": "Bearer <ZOOMINFO_MCP_KEY>"
+      }
     },
     "parcelscraper": {
-      "url": "https://mcp.claude.christianbaenaconsulting.com/parcelscraper"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/parcelscraper",
+      "headers": {
+        "Authorization": "Bearer <PARCELSCRAPER_MCP_KEY>"
+      }
     },
     "adminsite": {
-      "url": "https://mcp.claude.christianbaenaconsulting.com/adminsite"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/adminsite",
+      "headers": {
+        "Authorization": "Bearer <ADMINSITE_MCP_KEY>"
+      }
     }
   }
 }
@@ -149,6 +161,7 @@ sudo certbot --nginx -d mcp.claude.christianbaenaconsulting.com
 See [`.env.example`](.env.example) for the full list. Key groups:
 
 - **Shared:** `MCP_HOST`, `MCP_PORT`, `MCP_DOMAIN`
+- **MCP access keys:** `ENFORMION_MCP_KEY`, `ZOOMINFO_MCP_KEY`, `PARCELSCRAPER_MCP_KEY`, `ADMINSITE_MCP_KEY`
 - **Enformion:** `ENFORMIONGO_ACCESS_PROFILE_NAME`, `ENFORMIONGO_ACCESS_PROFILE_PASSWORD`
 - **ZoomInfo:** `ZOOMINFO_USERNAME`, `ZOOMINFO_PASSWORD` (or PKI credentials)
 - **Parcelscraper:** `PARCELSCRAPER_API_URL`
