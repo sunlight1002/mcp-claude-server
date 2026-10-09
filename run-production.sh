@@ -22,6 +22,10 @@ fi
 
 echo "Installing dependencies..."
 "$VENV_PYTHON" -m pip install -q -r requirements.txt
+"$VENV_PYTHON" -m playwright install chromium
+if ! command -v Xvfb >/dev/null 2>&1; then
+  echo "warning: Xvfb is not installed. The Sunbiz server needs it (sudo apt-get install -y xvfb)." >&2
+fi
 
 if ! command -v pm2 >/dev/null 2>&1; then
   if ! command -v npm >/dev/null 2>&1; then
@@ -46,6 +50,6 @@ echo
 echo "Production MCP server is running."
 echo "  Local health:  http://127.0.0.1:8000/health"
 echo "  Public URL:    https://$DOMAIN"
-echo "  Endpoints:     /enformion /zoominfo /parcelscraper /adminsite"
+echo "  Endpoints:     /enformion /zoominfo /parcelscraper /adminsite /sunbiz"
 echo
 pm2 status "$PM2_APP"

@@ -1,10 +1,11 @@
 """Unified MCP gateway for Lee Associates South Florida.
 
-Mounts four independent MCP servers under one Starlette application:
+Mounts independent MCP servers under one Starlette application:
   /enformion     - EnformionGO people/contact lookups
   /zoominfo      - ZoomInfo enrich and search
   /parcelscraper - Parcel scraper automation proxy
   /adminsite     - Admin site property intelligence proxy
+  /sunbiz        - Florida Sunbiz corporation search
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 # Load .env before importing servers so module-level getenv() sees credentials.
 load_dotenv()
 
-from servers import adminsite_mcp, enformion_mcp, parcelscraper_mcp, zoominfo_mcp
+from servers import adminsite_mcp, enformion_mcp, parcelscraper_mcp, sunbiz_mcp, zoominfo_mcp
 
 MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
 MCP_PORT = int(os.getenv("MCP_PORT", "8000"))
@@ -35,6 +36,7 @@ MCP_KEY_ENV = {
     "zoominfo": "ZOOMINFO_MCP_KEY",
     "parcelscraper": "PARCELSCRAPER_MCP_KEY",
     "adminsite": "ADMINSITE_MCP_KEY",
+    "sunbiz": "SUNBIZ_MCP_KEY",
 }
 
 MCP_SERVERS = [
@@ -42,6 +44,7 @@ MCP_SERVERS = [
     ("zoominfo", zoominfo_mcp),
     ("parcelscraper", parcelscraper_mcp),
     ("adminsite", adminsite_mcp),
+    ("sunbiz", sunbiz_mcp),
 ]
 
 

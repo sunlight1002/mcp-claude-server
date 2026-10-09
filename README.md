@@ -1,6 +1,6 @@
 # MCP Claude Server
 
-Unified MCP gateway for Lee Associates South Florida. One process serves four independent MCP servers behind a single domain:
+Unified MCP gateway for Lee Associates South Florida. One process serves independent MCP servers behind a single domain:
 
 | Path | Server | Description |
 | --- | --- | --- |
@@ -8,6 +8,7 @@ Unified MCP gateway for Lee Associates South Florida. One process serves four in
 | `/zoominfo` | ZoomInfo | Contact and company enrich/search |
 | `/parcelscraper` | Parcel Scraper | Property parcel enrichment automation |
 | `/adminsite` | Admin Site | Property intelligence and CRE analysis |
+| `/sunbiz` | Sunbiz | Florida Division of Corporations public search |
 
 **Production URL:** `https://mcp.claude.christianbaenaconsulting.com`
 
@@ -69,6 +70,15 @@ Full Lee Associates admin portal connector — properties, people/contacts, lead
 | `list_scraper_files` / `list_dade_files` / scraper status/start | Admin scraper proxies |
 | `list_call_sheet_jobs` / `get_call_sheet_download` | Call sheet converter API |
 
+### `/sunbiz`
+
+Public [Sunbiz](https://search.sunbiz.org/) corporation search. Sunbiz itself needs no site credential. `/sunbiz` uses `SUNBIZ_MCP_KEY` the same way as the other servers. Results are the alphabetical neighborhood of the term (about 20 rows per page), not a ranked exact-match list.
+
+| Tool | Description |
+| --- | --- |
+| `search_sunbiz` | Search by entity name, officer, registered agent, FEI/EIN, trademark, trademark owner, street address, or ZIP |
+| `get_sunbiz_record` | Filing detail for a document number or `detail_url`: status, addresses, registered agent, officers, annual reports, and name history |
+
 ## Setup
 
 ```bash
@@ -94,6 +104,7 @@ MCP endpoints:
 - `http://127.0.0.1:8000/zoominfo`
 - `http://127.0.0.1:8000/parcelscraper`
 - `http://127.0.0.1:8000/adminsite`
+- `http://127.0.0.1:8000/sunbiz`
 
 ## Connect to Claude Desktop
 
@@ -124,6 +135,12 @@ Add each server to `claude_desktop_config.json` (Streamable HTTP transport). Eac
       "url": "https://mcp.claude.christianbaenaconsulting.com/adminsite",
       "headers": {
         "Authorization": "Bearer <ADMINSITE_MCP_KEY>"
+      }
+    },
+    "sunbiz": {
+      "url": "https://mcp.claude.christianbaenaconsulting.com/sunbiz",
+      "headers": {
+        "Authorization": "Bearer <SUNBIZ_MCP_KEY>"
       }
     }
   }
@@ -161,7 +178,8 @@ sudo certbot --nginx -d mcp.claude.christianbaenaconsulting.com
 See [`.env.example`](.env.example) for the full list. Key groups:
 
 - **Shared:** `MCP_HOST`, `MCP_PORT`, `MCP_DOMAIN`
-- **MCP access keys:** `ENFORMION_MCP_KEY`, `ZOOMINFO_MCP_KEY`, `PARCELSCRAPER_MCP_KEY`, `ADMINSITE_MCP_KEY`
+- **MCP access keys:** `ENFORMION_MCP_KEY`, `ZOOMINFO_MCP_KEY`, `PARCELSCRAPER_MCP_KEY`, `ADMINSITE_MCP_KEY`, `SUNBIZ_MCP_KEY`
+- **Sunbiz:** optional `SUNBIZ_TIMEOUT` (seconds). Host needs `xvfb` and Playwright Chromium (`playwright install chromium`)
 - **Enformion:** `ENFORMIONGO_ACCESS_PROFILE_NAME`, `ENFORMIONGO_ACCESS_PROFILE_PASSWORD`
 - **ZoomInfo:** `ZOOMINFO_USERNAME`, `ZOOMINFO_PASSWORD` (or PKI credentials)
 - **Parcelscraper:** `PARCELSCRAPER_API_URL`
@@ -180,7 +198,8 @@ uvicorn (server.py) ── Starlette app on 127.0.0.1:8000
         ├── /enformion     → EnformionGO API
         ├── /zoominfo      → ZoomInfo API
         ├── /parcelscraper → automation service
-        └── /adminsite     → admin Next.js /api
+        ├── /adminsite     → admin Next.js /api
+        └── /sunbiz        → search.sunbiz.org
 ```
 
 Each path is an independent `FastMCP` instance mounted with `streamable_http_path="/"`. A combined Starlette lifespan manages all session managers.
