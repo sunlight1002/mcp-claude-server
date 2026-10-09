@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-DOMAIN="${MCP_DOMAIN:-mcp.claude.lee-associates-southflorida.com}"
+DOMAIN="${MCP_DOMAIN:-mcp.claude.christianbaenaconsulting.com}"
 VENV_PYTHON="$ROOT/venv/bin/python"
 PM2_APP="mcp-claude"
 

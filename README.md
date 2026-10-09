@@ -9,7 +9,7 @@ Unified MCP gateway for Lee Associates South Florida. One process serves four in
 | `/parcelscraper` | Parcel Scraper | Property parcel enrichment automation |
 | `/adminsite` | Admin Site | Property intelligence and CRE analysis |
 
-**Production URL:** `https://mcp.claude.lee-associates-southflorida.com`
+**Production URL:** `https://mcp.claude.christianbaenaconsulting.com`
 
 ## Tools
 
@@ -103,16 +103,16 @@ Add each server to `claude_desktop_config.json` (Streamable HTTP transport):
 {
   "mcpServers": {
     "enformion": {
-      "url": "https://mcp.claude.lee-associates-southflorida.com/enformion"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/enformion"
     },
     "zoominfo": {
-      "url": "https://mcp.claude.lee-associates-southflorida.com/zoominfo"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/zoominfo"
     },
     "parcelscraper": {
-      "url": "https://mcp.claude.lee-associates-southflorida.com/parcelscraper"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/parcelscraper"
     },
     "adminsite": {
-      "url": "https://mcp.claude.lee-associates-southflorida.com/adminsite"
+      "url": "https://mcp.claude.christianbaenaconsulting.com/adminsite"
     }
   }
 }
@@ -141,7 +141,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 
 # 4. TLS with certbot
-sudo certbot --nginx -d mcp.claude.lee-associates-southflorida.com
+sudo certbot --nginx -d mcp.claude.christianbaenaconsulting.com
 ```
 
 ## Environment variables
@@ -160,7 +160,7 @@ See [`.env.example`](.env.example) for the full list. Key groups:
 Claude / MCP client
         │
         ▼
-nginx (mcp.claude.lee-associates-southflorida.com)
+nginx (mcp.claude.christianbaenaconsulting.com)
         │
         ▼
 uvicorn (server.py) ── Starlette app on 127.0.0.1:8000
